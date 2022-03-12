@@ -5,6 +5,7 @@ import argparse
 import copy
 import numpy as np
 from tqdm import tqdm
+from filters import grad
 
 def parse_args():
     # Function to parse args
@@ -12,15 +13,28 @@ def parse_args():
     parser.add_argument("-p", "--path", help="Image to run SLIC on", type=str)
     parser.add_argument("-s", "--S", help="Superpixel Size", default=None, type=int)
     parser.add_argument("-n", "--num", help="Number of Superpixel", type=int, default=100)
-    parser.add_argument("-t", "--threshold", help="Residual error min threshold", type=float, default=0.01)
+    parser.add_argument("-t", "--threshold", help="Residual error threshold", type=float, default=0.01)
+    parser.add_argument("-o", "--output", help="Path to write output image", type=str, default='images/out.png')
     args = parser.parse_args()
     return args
 
-def min_grad_center(r, c, pixels):
-    return r, c 
+def min_grad_center(r, c, grad_img):
+    # Moved cluster center (c, r) to minimum gradient point in 3x3 window
+    min_grad_r = 0
+    min_grad_c = 0
+    min_grad = np.inf
+    for i in range(r-1, r+2):
+        for j in range(c-1, c+2):
+            if i < 0 or i > grad_img.shape[0]-1 or j < 0 or j > grad_img.shape[1]-1:
+                continue
+            if grad_img[i][j] < min_grad:
+                min_grad_r = i
+                min_grad_c = j
+                min_grad = grad_img[i][j]
+    return min_grad_r, min_grad_c
 
 def L2_dist(pix1, pix2, S):
-    m = 10
+    m = 25
     dc = np.sqrt((pix1.l-pix2.l)**2 + (pix1.a-pix2.a)**2 + (pix1.b-pix2.b)**2)
     ds = np.sqrt((pix1.x-pix2.x)**2 + (pix1.y-pix2.y)**2)
     D = np.sqrt(dc**2 + m**2 * (ds/S)**2)
@@ -34,7 +48,11 @@ def slic(pixels, args):
     # Get the grid intervals (if only the number of superpixels provided)
     if args.S == None:
         args.S = int(np.sqrt(N / args.num))
-    
+
+    # Get the image gradients using Sobel filter on the luminance channel
+    luminance = np.array([[p.l for p in pixarr] for pixarr in pixels])
+    grad_img = grad(luminance)
+
     # Get the initial cluster centers
     cluster_centers = []
     ri = 0
@@ -42,7 +60,7 @@ def slic(pixels, args):
         ci = 0
         while ci < cols:
             # Recenter to min grad location in 3x3 window (using LAB pixels)
-            r, c = min_grad_center(ri, ci, pixels)
+            r, c = min_grad_center(ri, ci, grad_img)
             l, a, b, x, y = pixels[r][c].l, pixels[r][c].a, pixels[r][c].l, pixels[r][c].x, pixels[r][c].y
             cluster_centers.append(pixel(l, a, b, x, y))
             ci += args.S
@@ -124,9 +142,10 @@ def main():
     # Read image and convert to pixels
     pix = getpixels(args.path)
     # Run SLIC
+    print("Running image SLIC algorithm on pixels in CIELAB format ...")
     cluster_centers, boundary = slic(pix, args)
     # Display
-    cluster_disp(args.path, boundary)
+    cluster_disp(args.path, boundary, args.output)
 
 if __name__ == "__main__":
     main()
