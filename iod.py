@@ -67,3 +67,23 @@ def dispixels(pixels):
     cols = len(pixels[0])
     lab_img = np.array([[[pixels[i][j].l, pixels[i][j].a, pixels[i][j].b] for j in range(cols)] for i in range(rows)])
     disp_RGB_img(lab_img)
+
+def load_video(path):
+    # Loading video in RGB
+    vid = cv2.VideoCapture(path)
+    print("Loading Video {} ...".format(path))
+    frames = []
+    frame_jump = 10
+    idx = 0
+    while True:
+        check, arr = vid.read()
+        if not check:
+            break 
+        if idx % frame_jump != 0:
+            idx += 1
+            continue
+        frames.append(arr)
+        idx += 1
+    frames = np.asarray(frames)
+    print("Loaded")
+    return frames
