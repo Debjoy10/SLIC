@@ -29,6 +29,7 @@ Original            |  Segmented
 - [x] Code to move pixel to lowest gradient position in 3x3 neighbourhood
 - [ ] Connectivity enforcing postprocessing step (For both image, video SLIC)
 - [ ] Trackbar based display (Low priority)
+- [ ] Colour space conversion (RGB to CIELAB) from scratch (If required)
 - [ ] Check code for errors
 
 
