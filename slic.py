@@ -11,8 +11,9 @@ def parse_args():
     # Function to parse args
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--path", help="Image to run SLIC on", type=str)
-    parser.add_argument("-s", "--S", help="Superpixel Size", default=None, type=int)
-    parser.add_argument("-n", "--num", help="Number of Superpixel", type=int, default=100)
+    parser.add_argument("-s", "--S", help="Superpixel Size (s or (sx sy))", nargs='+', default=None, type=int)
+    parser.add_argument("-r", "--rect", help="Allow/use rectangular superpixel", action='store_true')
+    parser.add_argument("-n", "--num", help="Number of Superpixel", type=int, default=1000)
     parser.add_argument("-t", "--threshold", help="Residual error threshold", type=float, default=0.01)
     parser.add_argument("-o", "--output", help="Path to write output image", type=str, default='images/out.png')
     args = parser.parse_args()
@@ -33,11 +34,11 @@ def min_grad_center(r, c, grad_img):
                 min_grad = grad_img[i][j]
     return min_grad_r, min_grad_c
 
-def L2_dist(pix1, pix2, S):
+def L2_dist(pix1, pix2, Sx, Sy):
     m = 25
     dc = np.sqrt((pix1.l-pix2.l)**2 + (pix1.a-pix2.a)**2 + (pix1.b-pix2.b)**2)
-    ds = np.sqrt((pix1.x-pix2.x)**2 + (pix1.y-pix2.y)**2)
-    D = np.sqrt(dc**2 + m**2 * (ds/S)**2)
+    ds = np.sqrt(((pix1.x-pix2.x)/Sx)**2 + ((pix1.y-pix2.y)/Sy)**2)
+    D = np.sqrt(dc**2 + m**2 * ds**2)
     return D
 
 def slic(pixels, args):
@@ -47,7 +48,21 @@ def slic(pixels, args):
 
     # Get the grid intervals (if only the number of superpixels provided)
     if args.S == None:
-        args.S = int(np.sqrt(N / args.num))
+        if args.rect:
+            Sx = int(cols / np.sqrt(args.num))
+            Sy = int(rows / np.sqrt(args.num))
+        else:
+            Sx = int(np.sqrt(N / args.num))
+            Sy = int(np.sqrt(N / args.num))
+    else:
+        assert len(args.S) == int(args.rect) + 1
+        if not args.rect:
+            Sx = args.S[0]
+            Sy = args.S[0]
+        else:
+            Sx = args.S[0]
+            Sy = args.S[1]
+    print("Running with Super-pixel Size = (Sx, Sy) = ({}, {})".format(Sx, Sy))
 
     # Get the image gradients using Sobel filter on the luminance channel
     luminance = np.array([[p.l for p in pixarr] for pixarr in pixels])
@@ -63,8 +78,8 @@ def slic(pixels, args):
             r, c = min_grad_center(ri, ci, grad_img)
             l, a, b, x, y = pixels[r][c].l, pixels[r][c].a, pixels[r][c].l, pixels[r][c].x, pixels[r][c].y
             cluster_centers.append(pixel(l, a, b, x, y))
-            ci += args.S
-        ri += args.S
+            ci += Sx
+        ri += Sy
 
     # SLIC algorithm
     ERR = np.inf
@@ -76,10 +91,10 @@ def slic(pixels, args):
             y = center.y
             if x == -1 or y == -1:
                 continue
-            for i in range(max(0, y - 2*args.S), min(rows, y + 2*args.S)):
-                for j in range(max(0, x - 2*args.S), min(cols, x + 2*args.S)):
+            for i in range(max(0, y - 2*Sy), min(rows, y + 2*Sy)):
+                for j in range(max(0, x - 2*Sx), min(cols, x + 2*Sx)):
                     pix = pixels[i][j]
-                    D = L2_dist(pix, center, args.S)
+                    D = L2_dist(pix, center, Sx, Sy)
                     if D < pix.distance:
                         pix.distance = D
                         pix.label = k    
@@ -107,7 +122,7 @@ def slic(pixels, args):
                 new_cluster_centers.append(newcc)
 
                 # Add to residual error
-                ERR += L2_dist(cc, newcc, args.S)
+                ERR += L2_dist(cc, newcc, Sx, Sy)
             else:
                 # No pixels assigned to these cluster centers. Assign dummy values
                 newcc = pixel(0, 0, 0, -1, -1)
