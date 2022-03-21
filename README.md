@@ -29,7 +29,7 @@ Original            |  Segmented
 
 - [x] SLIC on pixels `SLIC.py`
 - [ ] SLIC on voxels (video) (New code file `video_SLIC.py` using `voxel` class from `feature.py`)
-- [ ] Add visualisation function for video SLIC (in `visualisation.py` - check paper for an example)
+- [x] Add visualisation function for video SLIC (in `visualisation.py` - check paper for an example)
 - [x] Code to move pixel to lowest gradient position in 3x3 neighbourhood
 - [ ] Connectivity enforcing postprocessing step (For both image, video SLIC)
 - [x] Add support for allowing rectangular superpixels
