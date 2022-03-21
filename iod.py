@@ -1,8 +1,10 @@
 # Function for reading and writing images in CIELAB format
 import cv2
-from feature import pixel, voxel
+from feature import pixel, voxel, stereovoxel
 import numpy as np
 from random import randrange
+import os
+from tqdm import tqdm
 
 def read_LAB_img(path):
     # Reads the image
@@ -69,4 +71,25 @@ def getpixels_video(path):
     rows = vid.shape[1]
     cols = vid.shape[2]
     pixels = [[[voxel(vid[t][i][j][0], vid[t][i][j][1], vid[t][i][j][2], j, i, t-2) for j in range(cols)] for i in range(rows)] for t in range(time)]
+    pixels = np.array(pixels)
     return pixels
+
+##### Stereo Images
+def load_stereos(path):
+    stframes = []
+    ims = [os.path.join(path, f) for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+    frames = []
+    print("Loading Stereo Frames {} ...".format(path))
+    for y in range(3):
+        frames.append([])
+        for x in range(3):
+            dirname = os.path.join(path, '0{}_0{}'.format(y, x))
+            vid = [read_LAB_img(os.path.join(dirname, f)) for f in os.listdir(dirname)]
+            rows = vid[0].shape[0]
+            cols = vid[0].shape[1]
+            time = min(5, len(vid))
+            camvid = [[[stereovoxel(vid[t][i][j][0], vid[t][i][j][1], vid[t][i][j][2], j, i, t-time/2, x, y) for j in range(cols)] for i in range(rows)] for t in range(time)]
+            frames[y].append(camvid)
+    print("Loaded")
+    frames = np.array(frames)
+    return frames

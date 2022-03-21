@@ -22,3 +22,17 @@ class voxel:
         self.t = t
         self.label = -1
         self.distance = np.inf
+
+# Stereo Voxel feature class
+class stereovoxel: 
+    def __init__(self, l, a, b, x, y, t, cx, cy): 
+        self.l = l 
+        self.a = a
+        self.b = b
+        self.x = x
+        self.y = y
+        self.t = t
+        self.cx = cx
+        self.cy = cy
+        self.label = -1
+        self.distance = np.inf
