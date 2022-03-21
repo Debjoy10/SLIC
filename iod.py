@@ -2,6 +2,7 @@
 import cv2
 from feature import pixel, voxel
 import numpy as np
+from random import randrange
 
 def read_LAB_img(path):
     # Reads the image
@@ -23,36 +24,6 @@ def display_image(img, winname = 'image'):
     cv2.waitKey(0)         
     cv2.destroyAllWindows()
 
-def RGB_to_XYZ(r, g, b):
-    # http://www.easyrgb.com/en/math.php - (If we need to do manually) - Refer for rest of colour conversion functions
-
-    var_R = r / 255
-    var_G = g / 255
-    var_B = b / 255
-
-    if var_R > 0.04045:
-        var_R = (( var_R + 0.055) / 1.055) ^ 2.4
-    else:
-        var_R = var_R / 12.92
-    if var_G > 0.04045:
-        var_G = (( var_G + 0.055) / 1.055) ^ 2.4
-    else:
-        var_G = var_G / 12.92
-    if var_B > 0.04045:
-        var_B = ((var_B + 0.055) / 1.055 ) ^ 2.4
-    else:                   
-        var_B = var_B / 12.92
-
-    var_R = var_R * 100
-    var_G = var_G * 100
-    var_B = var_B * 100
-
-    X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805
-    Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722
-    Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505
-
-    return X, Y, Z
-
 def getpixels(path):
     # Read image in path in CIELAB format and convert to pixel-array (l, a, b, x, y)
     img = read_LAB_img(path)
@@ -68,7 +39,7 @@ def dispixels(pixels):
     lab_img = np.array([[[pixels[i][j].l, pixels[i][j].a, pixels[i][j].b] for j in range(cols)] for i in range(rows)])
     disp_RGB_img(lab_img)
 
-def load_video(path):
+def load_video(path, sfidx = None):
     # Loading video in RGB
     vid = cv2.VideoCapture(path)
     print("Loading Video {} ...".format(path))
@@ -82,8 +53,20 @@ def load_video(path):
         if idx % frame_jump != 0:
             idx += 1
             continue
-        frames.append(arr)
+        frames.append(cv2.cvtColor(arr, cv2.COLOR_BGR2LAB))
         idx += 1
+    if sfidx is not None:
+        frames = frames[sfidx:sfidx+5]
+        print("Selecting 5 consecutive frames starting from {}".format(sfidx))
     frames = np.asarray(frames)
     print("Loaded")
     return frames
+
+def getpixels_video(path):
+    # Read image in path in CIELAB format and convert to pixel-array (l, a, b, x, y)
+    vid = load_video(path, 0)
+    time = vid.shape[0]
+    rows = vid.shape[1]
+    cols = vid.shape[2]
+    pixels = [[[voxel(vid[t][i][j][0], vid[t][i][j][1], vid[t][i][j][2], j, i, t-2) for j in range(cols)] for i in range(rows)] for t in range(time)]
+    return pixels

@@ -17,13 +17,23 @@ def cluster_disp(path, B, opath):
         cv2.imwrite(opath, img)
         print("Output image written to {}".format(opath))
 
-def cluster_disp_vox(path, opath):
+def cluster_disp_vox(path, B, opath):
+    # B = [(x, y, z) ...]
     # Load video
-    frames = load_video(path)
-    img = cv2.imread(path)
-    for i, im in enumerate(frames[0:10]):
+    frames = [cv2.cvtColor(f, cv2.COLOR_LAB2BGR) for f in load_video(path, sfidx = 0)]
+
+    # Collect coordinates of each point
+    B_dict = {i: [] for i in range(-2, 3)}
+    for (x, y, z) in B:
+        B_dict[z] = [(x, y)]
+
+    # Plot 3D slices of video, 5 frames
+    for i, im in enumerate(frames[:5]):
+        ix = i-2
         img = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)/255
         x, y = ogrid[0:img.shape[0], 0:img.shape[1]]
         ax = gca(projection='3d')
-        ax.plot_surface(x, y, i*np.ones_like(x), rstride=5, cstride=5, facecolors=img)
-    show()
+        for xi, yi in B_dict[ix]:
+            img[yi][xi][:] = 0
+        ax.plot_surface(x, y, ix*np.ones_like(x), rstride=5, cstride=5, facecolors=img, antialiased=True)
+    plt.savefig(opath)
