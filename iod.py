@@ -70,7 +70,7 @@ def getpixels_video(path):
     time = vid.shape[0]
     rows = vid.shape[1]
     cols = vid.shape[2]
-    pixels = [[[voxel(vid[t][i][j][0], vid[t][i][j][1], vid[t][i][j][2], j, i, t-2) for j in range(cols)] for i in range(rows)] for t in range(time)]
+    pixels = [[[voxel(vid[t][i][j][0], vid[t][i][j][1], vid[t][i][j][2], j, i, t) for j in range(cols)] for i in range(rows)] for t in range(time)]
     pixels = np.array(pixels)
     return pixels
 
@@ -88,7 +88,7 @@ def load_stereos(path):
             rows = vid[0].shape[0]
             cols = vid[0].shape[1]
             time = min(5, len(vid))
-            camvid = [[[stereovoxel(vid[t][i][j][0], vid[t][i][j][1], vid[t][i][j][2], j, i, t-time/2, x, y) for j in range(cols)] for i in range(rows)] for t in range(time)]
+            camvid = [[[stereovoxel(vid[t][i][j][0], vid[t][i][j][1], vid[t][i][j][2], j, i, t, x, y) for j in range(cols)] for i in range(rows)] for t in range(time)]
             frames[y].append(camvid)
     print("Loaded")
     frames = np.array(frames)

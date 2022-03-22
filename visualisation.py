@@ -20,20 +20,36 @@ def cluster_disp(path, B, opath):
 def cluster_disp_vox(path, B, opath):
     # B = [(x, y, z) ...]
     # Load video
-    frames = [cv2.cvtColor(f, cv2.COLOR_LAB2BGR) for f in load_video(path, sfidx = 0)]
+    frames = np.array([cv2.cvtColor(f, cv2.COLOR_LAB2BGR) for f in load_video(path, sfidx = 0)])
 
     # Collect coordinates of each point
-    B_dict = {i: [] for i in range(-2, 3)}
-    for (x, y, z) in B:
-        B_dict[z] = [(x, y)]
+    B_dict = {i: [] for i in range(0, 5)}
+    for (k, i, j) in B:
+        B_dict[k] = [(i, j)]
 
     # Plot 3D slices of video, 5 frames
     for i, im in enumerate(frames[:5]):
-        ix = i-2
         img = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)/255
         x, y = ogrid[0:img.shape[0], 0:img.shape[1]]
         ax = gca(projection='3d')
-        for xi, yi in B_dict[ix]:
+        for yi, xi in B_dict[i]:
             img[yi][xi][:] = 0
-        ax.plot_surface(x, y, ix*np.ones_like(x), rstride=5, cstride=5, facecolors=img, antialiased=True)
+        ax.plot_surface(x, y, i*np.ones_like(x), rstride=1, cstride=1, facecolors=img, antialiased=True)
     plt.savefig(opath)
+
+def write_cluster_video(path, B, opath):
+    # B = [(x, y, z) ...]
+    # Load video
+    frames = np.array([cv2.cvtColor(f, cv2.COLOR_LAB2BGR) for f in load_video(path, sfidx = 0)])
+    width = frames.shape[2]
+    height = frames.shape[1]
+    if not opath.endswith("mp4"):
+        opath = opath.split('.')[0] + '.mp4'
+    video = cv2.VideoWriter(opath, cv2.VideoWriter_fourcc('m','p','4','v'), 1, (width, height))
+    for boundary in B:
+        k, i, j = boundary
+        frames[k][i][j][:] = 0
+    for frame in frames:
+        video.write(frame)
+    video.release()
+    return
