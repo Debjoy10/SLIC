@@ -80,7 +80,7 @@ def load_stereos(path):
     ims = [os.path.join(path, f) for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
     frames = []
     print("Loading Stereo Frames {} ...".format(path))
-    for y in range(3):
+    for y in tqdm(range(3)):
         frames.append([])
         for x in range(3):
             dirname = os.path.join(path, '0{}_0{}'.format(y, x))

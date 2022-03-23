@@ -7,6 +7,9 @@ import numpy as np
 from tqdm import tqdm
 from filters import grad
 from slic import min_grad_center
+from datetime import datetime
+import json
+import os
 
 def parse_args():
     # Function to parse args
@@ -16,9 +19,8 @@ def parse_args():
     parser.add_argument("-r", "--rect", help="Allow/use rectangular superpixel", action='store_true')
     parser.add_argument("-n", "--num", help="Number of Superpixel", type=int, default=1000)
     parser.add_argument("-t", "--threshold", help="Residual error threshold", type=float, default=0.01)
-    parser.add_argument("-ov", "--output_V", help="Path to write output video", type=str, default='images/vid_out.mp4')
-    parser.add_argument("-oi", "--output_I", help="Path to write output image", type=str, default='images/vid_out.png')
-    parser.add_argument("-c", "--plt_surface", help="If true plot the surface plot of the output else write to video file frame-by-frame", action='store_true')
+    parser.add_argument("-o", "--output", help="Path to write outputs", type=str, default=None)
+    parser.add_argument("-c", "--plt_surface", help="(Experimental) If true plot the surface plot of the output", action='store_true')
     args = parser.parse_args()
     return args
 
@@ -129,7 +131,16 @@ def slic(voxels, args):
         print("Avg. Residual Error after iteration = {} is {}".format(iters, ERR))
         cluster_centers = new_cluster_centers
 
-    #Draw cluster boundaries for visualisation
+    # Collect final clusters
+    clusters = [[] for k in range(len(cluster_centers))]
+    for k in range(time):
+        for i in range(rows):
+            for j in range(cols):
+                vox = voxels[k][i][j]
+                clusters[vox.label].append(vox.__dict__)
+    cluster_centers = [cc.__dict__ for cc in cluster_centers]
+
+    # Draw cluster boundaries for visualisation
     boundary = []
     for k in range(time):
         for i in range(rows):
@@ -146,7 +157,30 @@ def slic(voxels, args):
                     nlabel.append(voxels[k][i-1][j+1].label)
                 if len(nlabel) > 0 and sum([n != label for n in nlabel]) != 0:
                     boundary.append((k, i, j))
-    return cluster_centers, boundary
+    return cluster_centers, boundary, clusters
+
+def save(cluster_centers, boundary, clusters, args):
+    if args.output is None:
+        now = datetime.now()
+        args.output = os.path.join('results', 'voxel-SLIC_' + now.strftime("%m-%d-%Y_%H-%M-%S"))
+
+    # Make directory
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)
+
+    # Save image
+    if args.plt_surface:
+        cluster_disp_vox(args.path, boundary, os.path.join(args.output, 'out.jpg'))
+    write_cluster_video(args.path, boundary, os.path.join(args.output, 'out.mp4'))
+
+    # Save clusters
+    with open(os.path.join(args.output, 'cc.json'), "w") as fp:
+        json.dump(cluster_centers, fp)
+    with open(os.path.join(args.output, 'c.json'), "w") as fp:
+        json.dump(clusters, fp)
+    with open(os.path.join(args.output, 'args.json'), "w") as fp:
+        json.dump(args.__dict__, fp)
+    print("Output saved to folder - {}".format(args.output))
 
 def main():
     args = parse_args()
@@ -154,11 +188,9 @@ def main():
     pix = getpixels_video(args.path)
     # Run SLIC
     print("Running video SLIC algorithm on pixels in CIELAB format ...")
-    cluster_centers, boundary = slic(pix, args)
+    cluster_centers, boundary, clusters = slic(pix, args)
     # Display
-    if args.plt_surface:
-        cluster_disp_vox(args.path, boundary, args.output_I)
-    write_cluster_video(args.path, boundary, args.output_V)
+    save(cluster_centers, boundary, clusters, args)
 
 if __name__ == "__main__":
     main()

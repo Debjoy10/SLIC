@@ -6,6 +6,9 @@ import copy
 import numpy as np
 from tqdm import tqdm
 from filters import grad
+from datetime import datetime
+import json
+import os
 
 def parse_args():
     # Function to parse args
@@ -15,7 +18,7 @@ def parse_args():
     parser.add_argument("-r", "--rect", help="Allow/use rectangular superpixel", action='store_true')
     parser.add_argument("-n", "--num", help="Number of Superpixel", type=int, default=1000)
     parser.add_argument("-t", "--threshold", help="Residual error threshold", type=float, default=0.01)
-    parser.add_argument("-o", "--output", help="Path to write output image", type=str, default='images/out.png')
+    parser.add_argument("-o", "--output", help="Path to write outputs", type=str, default=None)
     args = parser.parse_args()
     return args
 
@@ -134,6 +137,14 @@ def slic(pixels, args):
         print("Avg. Residual Error after iteration = {} is {}".format(iters, ERR))
         cluster_centers = new_cluster_centers
 
+    # Collect final clusters
+    clusters = [[] for k in range(len(cluster_centers))]
+    for i in range(rows):
+        for j in range(cols):
+            pix = pixels[i][j]
+            clusters[pix.label].append(pix.__dict__)
+    cluster_centers = [cc.__dict__ for cc in cluster_centers]
+
     # Draw cluster boundaries for visualisation
     boundary = []
     for i in range(rows):
@@ -150,7 +161,27 @@ def slic(pixels, args):
                 nlabel.append(pixels[i-1][j+1].label)
             if len(nlabel) > 0 and sum([n != label for n in nlabel]) != 0:
                 boundary.append((i, j))
-    return cluster_centers, boundary
+    return cluster_centers, boundary, clusters
+
+def save(cluster_centers, boundary, clusters, args):
+    if args.output is None:
+        now = datetime.now()
+        args.output = os.path.join('results', 'pixel-SLIC_' + now.strftime("%m-%d-%Y_%H-%M-%S"))
+
+    # Make directory
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)
+
+    # Save image
+    cluster_disp(args.path, boundary, os.path.join(args.output, 'out.png'))
+    # Save clusters
+    with open(os.path.join(args.output, 'cc.json'), "w") as fp:
+        json.dump(cluster_centers, fp)
+    with open(os.path.join(args.output, 'c.json'), "w") as fp:
+        json.dump(clusters, fp)
+    with open(os.path.join(args.output, 'args.json'), "w") as fp:
+        json.dump(args.__dict__, fp)
+    print("Output saved to folder - {}".format(args.output))
 
 def main():
     args = parse_args()
@@ -158,9 +189,9 @@ def main():
     pix = getpixels(args.path)
     # Run SLIC
     print("Running image SLIC algorithm on pixels in CIELAB format ...")
-    cluster_centers, boundary = slic(pix, args)
+    cluster_centers, boundary, clusters = slic(pix, args)
     # Display
-    cluster_disp(args.path, boundary, args.output)
+    save(cluster_centers, boundary, clusters, args)
 
 if __name__ == "__main__":
     main()
