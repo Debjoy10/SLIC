@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-from iod import display_image, load_video
+from iod import display_image, load_video, load_stereo_images
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -50,5 +50,26 @@ def write_cluster_video(path, B, opath):
         frames[k][i][j][:] = 0
     for frame in frames:
         video.write(frame)
+    video.release()
+    return
+
+def write_cluster_stereo_video(path, B, opath):
+    # B = [(x, y, z) ...]
+    # Load video
+    frames = load_stereo_images(path)
+    camrows, camcols, time, rows, cols, _ = frames.shape
+    if not opath.endswith("mp4"):
+        opath = opath.split('.')[0] + '.mp4'
+    video = cv2.VideoWriter(opath, cv2.VideoWriter_fourcc('m','p','4','v'), 1, (camcols*cols, camrows*rows))
+    for boundary in B:
+        ci, cj, k, i, j = boundary
+        frames[ci][cj][k][i][j][:] = 0
+    combined_frames = np.zeros([time, camrows*rows, camcols*cols, 3])
+    for ci in range(camrows):
+        for cj in range(camcols):
+            for k in range(time):
+                combined_frames[k, ci*rows: (ci+1)*rows, cj*cols: (cj+1)*cols] = frames[ci][cj][k]
+    for frame in combined_frames:
+        video.write(np.uint8(frame))
     video.release()
     return

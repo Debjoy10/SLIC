@@ -75,6 +75,24 @@ def getpixels_video(path):
     return pixels
 
 ##### Stereo Images
+def load_stereo_images(path):
+    stframes = []
+    ims = [os.path.join(path, f) for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+    frames = []
+    print("Loading Stereo Frames {} ...".format(path))
+    for y in tqdm(range(3)):
+        frames.append([])
+        for x in range(3):
+            dirname = os.path.join(path, '0{}_0{}'.format(y, x))
+            vid = [cv2.imread(os.path.join(dirname, f)) for f in os.listdir(dirname)]
+            rows = vid[0].shape[0]
+            cols = vid[0].shape[1]
+            time = min(5, len(vid))
+            frames[y].append(vid[:time])
+    print("Loaded")
+    frames = np.array(frames)
+    return frames
+
 def load_stereos(path):
     stframes = []
     ims = [os.path.join(path, f) for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
