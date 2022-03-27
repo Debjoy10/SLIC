@@ -137,8 +137,7 @@ def slic(voxels, args):
         for i in range(rows):
             for j in range(cols):
                 vox = voxels[k][i][j]
-                clusters[vox.label].append(vox.__dict__)
-    cluster_centers = [cc.__dict__ for cc in cluster_centers]
+                clusters[vox.label].append(vox)
 
     # Draw cluster boundaries for visualisation
     boundary = []
@@ -163,6 +162,10 @@ def save(cluster_centers, boundary, clusters, args):
     if args.output is None:
         now = datetime.now()
         args.output = os.path.join('results', 'voxel-SLIC_' + now.strftime("%m-%d-%Y_%H-%M-%S"))
+
+    # Convert to proper data format
+    cluster_centers = [cc.__dict__ for cc in cluster_centers]
+    clusters = [[{k: float(v) for k, v in p.__dict__.items()} for p in cluster] for cluster in clusters]
 
     # Make directory
     if not os.path.exists(args.output):

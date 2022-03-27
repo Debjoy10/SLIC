@@ -9,6 +9,7 @@ from filters import grad
 from datetime import datetime
 import json
 import os
+from postprocessing import PostProcessing
 
 def parse_args():
     # Function to parse args
@@ -19,6 +20,7 @@ def parse_args():
     parser.add_argument("-n", "--num", help="Number of Superpixel", type=int, default=1000)
     parser.add_argument("-t", "--threshold", help="Residual error threshold", type=float, default=0.01)
     parser.add_argument("-o", "--output", help="Path to write outputs", type=str, default=None)
+    parser.add_argument("-dp", "--disable_postprocessing", help="Disable Postprocessing of the output clusters", action='store_true')
     args = parser.parse_args()
     return args
 
@@ -142,8 +144,7 @@ def slic(pixels, args):
     for i in range(rows):
         for j in range(cols):
             pix = pixels[i][j]
-            clusters[pix.label].append(pix.__dict__)
-    cluster_centers = [cc.__dict__ for cc in cluster_centers]
+            clusters[pix.label].append(pix)
 
     # Draw cluster boundaries for visualisation
     boundary = []
@@ -168,6 +169,10 @@ def save(cluster_centers, boundary, clusters, args):
         now = datetime.now()
         args.output = os.path.join('results', 'pixel-SLIC_' + now.strftime("%m-%d-%Y_%H-%M-%S"))
 
+    # Convert to proper data format
+    cluster_centers = [cc.__dict__ for cc in cluster_centers]
+    clusters = [[{k: float(v) for k, v in p.__dict__.items()} for p in cluster] for cluster in clusters]
+
     # Make directory
     if not os.path.exists(args.output):
         os.makedirs(args.output)
@@ -190,6 +195,9 @@ def main():
     # Run SLIC
     print("Running image SLIC algorithm on pixels in CIELAB format ...")
     cluster_centers, boundary, clusters = slic(pix, args)
+    # Postprocess
+    if not args.disable_postprocessing:
+        centers, boundary, clusters = PostProcessing(pix, cluster_centers, boundary, clusters, 50)
     # Display
     save(cluster_centers, boundary, clusters, args)
 
