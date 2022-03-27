@@ -65,10 +65,10 @@ Output from running ` python slic_stereo_voxels.py -p ../sintelLF/ambushfight_1/
 - [x] SLIC on voxels (video) (New code file `video_SLIC.py` using `voxel` class from `feature.py`)
 - [x] Add visualisation function for video SLIC (in `visualisation.py` - check paper for an example)
 - [x] Code to move pixel to lowest gradient position in 3x3 neighbourhood
-- [ ] Connectivity enforcing postprocessing step (For all SLICs)
+- [x] Connectivity enforcing postprocessing step (For all SLICs)
 - [x] Add Stereo-video-SLIC code
-- [ ] Add inter-cluster tracking for video/stereo
 - [x] Add support for allowing rectangular superpixels
+- [ ] Add inter-cluster tracking for video/stereo
 - [ ] Trackbar based display
 - [x] Check code for errors
 
