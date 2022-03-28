@@ -15,7 +15,7 @@ import cv2
 
 # Utility functions
 def inImage(point, rows, cols):
-    if point.x <0 or point.x >= rows or point.y <0 or point.y >= cols :
+    if point.x <0 or point.x >= cols or point.y <0 or point.y >= rows :
         return False
     else:
         return True
