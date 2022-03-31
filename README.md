@@ -1,9 +1,14 @@
 # SLIC
 #### Simple Linear Iterative Clustering ([Paper](https://ieeexplore.ieee.org/document/6205760))
-
+  
+##### Install Dependencies
+```
+pip install -r requirements.txt
+```
+  
 ##### Pixel-SLIC
 ```
-usage: python slic.py [-h] [-p PATH] [-s S [S ...]] [-r] [-n NUM] [-t THRESHOLD] [-o OUTPUT]
+usage: python slic.py [-h] [-p PATH] [-s S [S ...]] [-r] [-n NUM] [-t THRESHOLD] [-o OUTPUT] [-dp]
 
 optional arguments:                                                                                                   
     -h, --help                                            show this help message and exit
@@ -18,7 +23,7 @@ optional arguments:
   
 ##### Voxel-SLIC
 ```
-usage: python slic_voxels.py [-h] [-p PATH] [-s S [S ...]] [-r] [-n NUM] [-t THRESHOLD] [-o OUTPUT] [-c]
+usage: python slic_voxels.py [-h] [-p PATH] [-s S [S ...]] [-r] [-n NUM] [-t THRESHOLD] [-o OUTPUT] [-c] [-dp]
 
 optional arguments:
   -h, --help                                              show this help message and exit
@@ -73,7 +78,5 @@ Output from running ` python slic_stereo_voxels.py -p ../sintelLF/ambushfight_1/
 - [ ] Add inter-cluster tracking for video/stereo
 - [ ] Trackbar based display
 - [x] Check code for errors
-
-> Requirements - imutils, tqdm, opencv, numpy, argparse, copy - Install from package manager  
 
 > Part of Term Project for EC69502: Image Processing Lab, IIT Kharagpur
