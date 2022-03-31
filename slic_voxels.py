@@ -10,6 +10,7 @@ from slic import min_grad_center
 from datetime import datetime
 import json
 import os
+from postprocessing import PostProcessing_voxels
 
 def parse_args():
     # Function to parse args
@@ -21,6 +22,7 @@ def parse_args():
     parser.add_argument("-t", "--threshold", help="Residual error threshold", type=float, default=0.01)
     parser.add_argument("-o", "--output", help="Path to write outputs", type=str, default=None)
     parser.add_argument("-c", "--plt_surface", help="(Experimental) If true plot the surface plot of the output", action='store_true')
+    parser.add_argument("-dp", "--disable_postprocessing", help="Disable Postprocessing of the output clusters", action='store_true')
     args = parser.parse_args()
     return args
 
@@ -192,6 +194,9 @@ def main():
     # Run SLIC
     print("Running video SLIC algorithm on pixels in CIELAB format ...")
     cluster_centers, boundary, clusters = slic(pix, args)
+    # Postprocess
+    if not args.disable_postprocessing:
+        centers, boundary, clusters = PostProcessing_voxels(pix, cluster_centers, boundary, clusters, 150)
     # Display
     save(cluster_centers, boundary, clusters, args)
 

@@ -5,6 +5,7 @@ import numpy as np
 from random import randrange
 import os
 from tqdm import tqdm
+import imutils
 
 def read_LAB_img(path):
     # Reads the image
@@ -43,25 +44,34 @@ def dispixels(pixels):
 
 def load_video(path, sfidx = None):
     # Loading video in RGB
-    vid = cv2.VideoCapture(path)
-    print("Loading Video {} ...".format(path))
-    frames = []
-    frame_jump = 10
-    idx = 0
-    while True:
-        check, arr = vid.read()
-        if not check:
-            break 
-        if idx % frame_jump != 0:
+    if not os.path.isdir(path):
+        vid = cv2.VideoCapture(path)
+        print("Loading Video {} ...".format(path))
+        frames = []
+        frame_jump = 10
+        idx = 0
+        while True:
+            check, arr = vid.read()
+            if not check:
+                break 
+            if idx % frame_jump != 0:
+                idx += 1
+                continue
+            frames.append(imutils.resize(cv2.cvtColor(arr, cv2.COLOR_BGR2LAB), width=512))
             idx += 1
-            continue
-        frames.append(cv2.cvtColor(arr, cv2.COLOR_BGR2LAB))
-        idx += 1
-    if sfidx is not None:
-        frames = frames[sfidx:sfidx+5]
-        print("Selecting 5 consecutive frames starting from {}".format(sfidx))
-    frames = np.asarray(frames)
-    print("Loaded")
+        if sfidx is not None:
+            frames = frames[sfidx:sfidx+5]
+            print("Selecting 5 consecutive frames starting from {}".format(sfidx))
+        frames = np.asarray(frames)
+        print("Loaded")
+    else:
+        print("Loading Video from frames {} ...".format(path))
+        imgs = os.listdir(path)
+        imgs.sort()
+        vid = [imutils.resize(cv2.cvtColor(cv2.imread(os.path.join(path, f)), cv2.COLOR_BGR2LAB), width=512) for f in imgs]
+        time = min(5, len(vid))
+        frames = np.asarray(vid[:time])
+        print("Loaded")
     return frames
 
 def getpixels_video(path):
@@ -76,38 +86,64 @@ def getpixels_video(path):
 
 ##### Stereo Images
 def load_stereo_images(path):
-    stframes = []
-    ims = [os.path.join(path, f) for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+    isframes = ('00_00' in os.listdir(path))
     frames = []
-    print("Loading Stereo Frames {} ...".format(path))
-    for y in tqdm(range(3)):
-        frames.append([])
-        for x in range(3):
-            dirname = os.path.join(path, '0{}_0{}'.format(y, x))
-            vid = [cv2.imread(os.path.join(dirname, f)) for f in os.listdir(dirname)]
-            rows = vid[0].shape[0]
-            cols = vid[0].shape[1]
-            time = min(5, len(vid))
-            frames[y].append(vid[:time])
+    if isframes:
+        print("Loading Stereo Frames {} ...".format(path))
+        for y in tqdm(range(3)):
+            frames.append([])
+            for x in range(3):
+                y1 = 3*y
+                x1 = 3*x
+                dirname = os.path.join(path, '0{}_0{}'.format(y1, x1))
+                vid = [imutils.resize(cv2.imread(os.path.join(dirname, f)), width=512) for f in os.listdir(dirname)]
+                rows = vid[0].shape[0]
+                cols = vid[0].shape[1]
+                time = min(5, len(vid))
+                frames[y].append(vid[:time])
+    else:
+        print("Loading Stereo Videos {} ...".format(path))
+        for y in tqdm(range(3)):
+            frames.append([])
+            for x in range(3):
+                num = 10*y + 3*x + 1
+                vid = str(num) + ".mp4"
+                camvid = np.array([cv2.cvtColor(f, cv2.COLOR_LAB2BGR) for f in load_video(os.path.join(path, vid), sfidx = 0)])
+                frames[y].append(camvid)
     print("Loaded")
     frames = np.array(frames)
     return frames
 
 def load_stereos(path):
-    stframes = []
-    ims = [os.path.join(path, f) for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+    isframes = ('00_00' in os.listdir(path))
     frames = []
-    print("Loading Stereo Frames {} ...".format(path))
-    for y in tqdm(range(3)):
-        frames.append([])
-        for x in range(3):
-            dirname = os.path.join(path, '0{}_0{}'.format(y, x))
-            vid = [read_LAB_img(os.path.join(dirname, f)) for f in os.listdir(dirname)]
-            rows = vid[0].shape[0]
-            cols = vid[0].shape[1]
-            time = min(5, len(vid))
-            camvid = [[[stereovoxel(vid[t][i][j][0], vid[t][i][j][1], vid[t][i][j][2], j, i, t, x, y) for j in range(cols)] for i in range(rows)] for t in range(time)]
-            frames[y].append(camvid)
+    if isframes:
+        print("Loading Stereo Frames {} ...".format(path))
+        for y in tqdm(range(3)):
+            frames.append([])
+            for x in range(3):
+                y1 = 3*y
+                x1 = 3*x
+                dirname = os.path.join(path, '0{}_0{}'.format(y1, x1))
+                vid = [imutils.resize(read_LAB_img(os.path.join(dirname, f)), width=512) for f in os.listdir(dirname)]
+                rows = vid[0].shape[0]
+                cols = vid[0].shape[1]
+                time = min(5, len(vid))
+                camvid = [[[stereovoxel(vid[t][i][j][0], vid[t][i][j][1], vid[t][i][j][2], j, i, t, x, y) for j in range(cols)] for i in range(rows)] for t in range(time)]
+                frames[y].append(camvid)
+    else:
+        print("Loading Stereo Videos {} ...".format(path))
+        for y in tqdm(range(3)):
+            frames.append([])
+            for x in range(3):
+                num = 10*y + 3*x + 1
+                vid = str(num) + ".mp4"
+                vid = load_video(os.path.join(path, vid))
+                rows = vid[0].shape[0]
+                cols = vid[0].shape[1]
+                time = min(5, len(vid))
+                camvid = [[[stereovoxel(vid[t][i][j][0], vid[t][i][j][1], vid[t][i][j][2], j, i, t, x, y) for j in range(cols)] for i in range(rows)] for t in range(time)]
+                frames[y].append(camvid)
     print("Loaded")
     frames = np.array(frames)
     return frames
